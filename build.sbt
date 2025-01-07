@@ -61,6 +61,7 @@ lazy val root: Project = project
     libraryDependencies ++= Seq(
       "org.slf4j" % "slf4j-api" % slf4jVersion,
       "org.slf4j" % "slf4j-simple" % slf4jVersion % Test,
+      "ch.qos.logback" % "logback-classic" % "1.5.16",
       "org.apache.beam" % "beam-sdks-java-core" % beamVersion,
       "org.apache.beam" % "beam-runners-direct-java" % beamVersion,
       "org.apache.beam" % "beam-sdks-java-io-kafka" % beamVersion,

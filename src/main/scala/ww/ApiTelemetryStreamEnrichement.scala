@@ -1,9 +1,11 @@
 package ww
 
 import org.apache.beam.sdk.Pipeline
+import org.apache.beam.sdk.io.kafka.KafkaIO
 import org.apache.beam.sdk.options.PipelineOptionsFactory
 import org.apache.beam.sdk.transforms.{Create, MapElements, SimpleFunction}
-import org.apache.beam.sdk.values.TypeDescriptors
+import org.apache.beam.sdk.values.{KV, TypeDescriptors}
+import org.apache.kafka.common.serialization.StringDeserializer
 
 
 object ApiTelemetryStreamEnrichement {
@@ -13,22 +15,34 @@ object ApiTelemetryStreamEnrichement {
     // Create the pipeline
     val pipeline = Pipeline.create(options)
 
-    // Create a simple pipeline
+    // Read from Kafka
+    val kafkaRead = KafkaIO.read[String, String]()
+      .withBootstrapServers("localhost:9098")
+      .withTopic("api-v1")
+      .withKeyDeserializer(classOf[StringDeserializer])
+      .withValueDeserializer(classOf[StringDeserializer])
+      .withoutMetadata()
+
+
+    // Build the pipeline
     pipeline
-      .apply("CreateInput", Create.of("Hello", "Apache", "Beam"))
+      .apply("ReadFromKafka", kafkaRead)
       .apply(
-        "TransformToUpper",
-        MapElements.into(TypeDescriptors.strings()).via((word: String) => word.toUpperCase)
+        "ProcessRecords",
+        MapElements.into(TypeDescriptors.kvs(TypeDescriptors.strings(), TypeDescriptors.strings()))
+          .via((record: KV[String, String]) => {
+            val key = Option(record.getKey).getOrElse("")
+            val value = record.getValue.toUpperCase // Transform value to uppercase
+            println("key:" + key + "   value: " + value)
+            KV.of(key, value)
+          }),
       )
-      .apply(
-        "PrintElements",
-        MapElements.via(new SimpleFunction[String, Void]() {
-          override def apply(input: String): Void = {
-            println(input)
-            null
-          }
-        })
-      )
+      .apply("PrintToStdOut", MapElements.via(new SimpleFunction[KV[String, String], String]() {
+        override def apply(input: KV[String, String]): String = {
+          println(input)
+          ""
+        }
+      }))
 
     // Run the pipeline
     pipeline.run().waitUntilFinish()
