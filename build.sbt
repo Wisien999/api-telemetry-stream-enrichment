@@ -2,22 +2,19 @@ import sbt._
 import Keys._
 import com.here.bom.Bom
 
-// see https://github.com/spotify/scio/blob/v0.14.9/build.sbt
-val scioVersion = "0.14.9"
-val beamVersion = "2.60.0"
+val beamVersion = "2.61.0"
 
 val guavaVersion = "33.1.0-jre"
 val jacksonVersion = "2.15.4"
 val magnolifyVersion = "0.7.4"
 val nettyVersion = "4.1.100.Final"
-val slf4jVersion = "1.7.30"
+val slf4jVersion = "2.0.16"
 
 lazy val beamBom = Bom("org.apache.beam" % "beam-sdks-java-bom" % beamVersion)
 lazy val guavaBom = Bom("com.google.guava" % "guava-bom" % guavaVersion)
 lazy val jacksonBom = Bom("com.fasterxml.jackson" % "jackson-bom" % jacksonVersion)
 lazy val magnolifyBom = Bom("com.spotify" % "magnolify-bom" % magnolifyVersion)
 lazy val nettyBom = Bom("io.netty" % "netty-bom" % nettyVersion)
-lazy val scioBom = Bom("com.spotify" % "scio-bom" % scioVersion)
 
 
 val bomSettings = Def.settings(
@@ -48,8 +45,8 @@ lazy val commonSettings = bomSettings ++ Def.settings(
   ),
   javacOptions ++= Seq("--release", "8"),
   // add extra resolved and remove exclude if you need kafka
-  // resolvers += "confluent" at "https://packages.confluent.io/maven/",
-  excludeDependencies += "org.apache.beam" % "beam-sdks-java-io-kafka"
+  resolvers += "confluent" at "https://packages.confluent.io/maven/",
+//  excludeDependencies += "org.apache.beam" % "beam-sdks-java-io-kafka"
 )
 
 lazy val root: Project = project
@@ -62,25 +59,10 @@ lazy val root: Project = project
     fork := true,
     run / outputStrategy := Some(OutputStrategy.StdoutOutput),
     libraryDependencies ++= Seq(
-      "com.spotify" %% "scio-core" % scioVersion,
       "org.slf4j" % "slf4j-api" % slf4jVersion,
-      "org.apache.beam" % "beam-runners-direct-java" % beamVersion % Test,
-      "com.spotify" %% "scio-test" % scioVersion % Test,
-      "org.slf4j" % "slf4j-simple" % slf4jVersion % Test
+      "org.slf4j" % "slf4j-simple" % slf4jVersion % Test,
+      "org.apache.beam" % "beam-sdks-java-core" % beamVersion,
+      "org.apache.beam" % "beam-runners-direct-java" % beamVersion,
+      "org.apache.beam" % "beam-sdks-java-io-kafka" % beamVersion,
     ),
   )
-
-//lazy val repl: Project = project
-//  .in(file(".repl"))
-//  .settings(commonSettings)
-//  .settings(
-//    name := "repl",
-//    description := "Scio REPL for api-telemetry-stream-enrichment",
-//    libraryDependencies ++= Seq(
-//      "com.spotify" %% "scio-repl" % scioVersion
-//    ),
-//    Compile / mainClass := Some("com.spotify.scio.repl.ScioShell"),
-//    publish / skip := true,
-//    fork := false,
-//  )
-//  .dependsOn(root)
