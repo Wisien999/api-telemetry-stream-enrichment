@@ -65,5 +65,6 @@ lazy val root: Project = project
       "org.apache.beam" % "beam-sdks-java-core" % beamVersion,
       "org.apache.beam" % "beam-runners-direct-java" % beamVersion,
       "org.apache.beam" % "beam-sdks-java-io-kafka" % beamVersion,
+      "org.redisson" % "redisson" % "3.42.0",
     ),
   )

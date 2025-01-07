@@ -12,6 +12,8 @@ object ApiTelemetryStreamEnrichement {
   def main(cmdlineArgs: Array[String]): Unit = {
     val options = PipelineOptionsFactory.create()
 
+
+
     // Create the pipeline
     val pipeline = Pipeline.create(options)
 
