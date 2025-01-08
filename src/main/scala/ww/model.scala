@@ -9,8 +9,8 @@ import java.io.InputStream
 import java.nio.charset.StandardCharsets
 
 case class ApiUsageEvent(version: Int, userId: Array[Byte], path: String)
-object ApiUsageEvent {
-  object KafkaDeserializer extends Deserializer {
+//object ApiUsageEvent {
+//  object KafkaDeserializer extends Deserializer {
 //    override def deserialize(inputStream: InputStream): ApiUsageEvent = {
 //      val version = inputStream.read()
 //      val userId = inputStream.readNBytes(8)
@@ -18,7 +18,7 @@ object ApiUsageEvent {
 //
 //      ApiUsageEvent(version, userId, new String(path, StandardCharsets.UTF_8))
 //    }
-  }
-}
+//  }
+//}
 
 case class User(userId: Int)
