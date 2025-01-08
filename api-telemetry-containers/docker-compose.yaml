@@ -1,4 +1,11 @@
 version: "3"
+
+
+#networks:
+#  app-tier:
+#    driver: bridge
+
+
 services:
   kafka:
     image: bitnami/kafka:latest
@@ -19,8 +26,8 @@ services:
 #    volumes:
 #      - ./kafka:/bitnami/kafka
   redis:
-    image: 'bitnami/redis:latest'
-    environment:
-      - ALLOW_EMPTY_PASSWORD=yes
+    image: 'redis:latest'
+#    environment:
+#      - ALLOW_EMPTY_PASSWORD=yes
     ports:
       - "6385:6379"

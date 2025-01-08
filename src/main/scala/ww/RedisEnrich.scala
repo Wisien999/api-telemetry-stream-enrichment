@@ -25,8 +25,9 @@ class RedisEnrich extends DoFn[String, String] {
     val input = context.element()
 
     // Perform a lookup in Redis
-    val enrichmentData = redisClient.getBucket[String](input).get
+    val enrichmentData = redisClient.getBucket[String](input).getOption
     val enrichedRecord = s"Input: $input, Enriched: $enrichmentData"
+    println("inside enrichement stage: " + enrichmentData)
 
     // Output the enriched data
     context.output(enrichedRecord)
