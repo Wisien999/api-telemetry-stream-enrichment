@@ -4,8 +4,8 @@ import org.apache.beam.sdk.Pipeline
 import org.apache.beam.sdk.io.kafka.KafkaIO
 import org.apache.beam.sdk.options.PipelineOptionsFactory
 import org.apache.beam.sdk.transforms.{MapElements, ParDo, ProcessFunction, SimpleFunction}
-import org.apache.beam.sdk.values.{KV, TypeDescriptors}
-import org.apache.kafka.common.serialization.{StringDeserializer, StringSerializer}
+import org.apache.beam.sdk.values.{KV, TypeDescriptor}
+import org.apache.kafka.common.serialization.StringDeserializer
 
 
 object ApiTelemetryStreamEnrichement {
@@ -23,10 +23,10 @@ object ApiTelemetryStreamEnrichement {
       .withValueDeserializer(classOf[ApiUsageEvent.KafkaDeserializer.type])
       .withoutMetadata()
 
-    val kafkaWrite = KafkaIO.write[String, String]()
+    val kafkaWrite = KafkaIO.write[String, EnrichedData]()
       .withBootstrapServers("localhost:9098")
       .withTopic("enriched-api-telemetry")
-      .withValueSerializer(classOf[StringSerializer])
+      .withValueSerializer(classOf[EnrichedData.KafkaSerializer])
       .values()
 
 
@@ -35,16 +35,16 @@ object ApiTelemetryStreamEnrichement {
       .apply("ReadFromKafka", kafkaRead)
       .apply(
         "ProcessRecords",
-        MapElements.into(TypeDescriptors.strings()).via(new ProcessFunction[KV[String, ApiUsageEvent], String] {
-            override def apply(input: KV[String, ApiUsageEvent]): String = {
-              println(input.getValue)
-              input.getValue.version.toString
-            }
+        MapElements.into(TypeDescriptor.of(classOf[ApiUsageEvent])).via(new ProcessFunction[KV[String, ApiUsageEvent], ApiUsageEvent] {
+          override def apply(input: KV[String, ApiUsageEvent]): ApiUsageEvent = {
+            println(input.getValue)
+            input.getValue
+          }
           })
       )
       .apply("RedisEnrichment", ParDo.of(new RedisEnrich))
-      .apply("PrintToStdOut", MapElements.via(new SimpleFunction[String, String]() {
-        override def apply(input: String): String = {
+      .apply("PrintToStdOut", MapElements.via(new SimpleFunction[EnrichedData, EnrichedData]() {
+        override def apply(input: EnrichedData): EnrichedData = {
           println(input)
           input
         }
