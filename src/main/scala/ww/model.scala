@@ -1,24 +1,21 @@
 package ww
 
-import com.google.common.base.Utf8
-import io.netty.buffer.{ByteBuf, Unpooled}
-import org.apache.beam.sdk.options.ValueProvider.Deserializer
-import org.redisson.codec.TypedJsonJacksonCodec
+import org.apache.kafka.common.serialization.Deserializer
 
-import java.io.InputStream
 import java.nio.charset.StandardCharsets
 
-case class ApiUsageEvent(version: Int, userId: Array[Byte], path: String)
-//object ApiUsageEvent {
-//  object KafkaDeserializer extends Deserializer {
-//    override def deserialize(inputStream: InputStream): ApiUsageEvent = {
-//      val version = inputStream.read()
-//      val userId = inputStream.readNBytes(8)
-//      val path = inputStream.readAllBytes()
-//
-//      ApiUsageEvent(version, userId, new String(path, StandardCharsets.UTF_8))
-//    }
-//  }
-//}
+case class ApiUsageEvent(version: Byte, userId: Seq[Byte], path: String)
+object ApiUsageEvent {
+  object KafkaDeserializer extends Deserializer[ApiUsageEvent] {
+    override def deserialize(topic: String, data: Array[Byte]): ApiUsageEvent = {
+      val dataSeq = data.toSeq
+      val version = dataSeq.head
+      val userId = dataSeq.slice(1, 9)
+      val path = dataSeq.slice(9, dataSeq.length)
 
-case class User(userId: Int)
+      ApiUsageEvent(version, userId, new String(path.toArray, StandardCharsets.UTF_8))
+    }
+  }
+}
+
+case class User(userId: Seq[Byte])
