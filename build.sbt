@@ -63,8 +63,10 @@ lazy val root: Project = project
       "org.slf4j" % "slf4j-simple" % slf4jVersion % Test,
       "ch.qos.logback" % "logback-classic" % "1.5.16",
       "org.apache.beam" % "beam-sdks-java-core" % beamVersion,
+      "org.apache.beam" % "beam-sdks-java-transform-service" % beamVersion,
       "org.apache.beam" % "beam-runners-direct-java" % beamVersion,
       "org.apache.beam" % "beam-sdks-java-io-kafka" % beamVersion,
       "org.redisson" % "redisson" % "3.42.0",
+      "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.18.2",
     ),
   )
