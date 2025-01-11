@@ -34,7 +34,7 @@ if __name__ == "__main__":
         next(reader)  # Skip the header row
         for row in reader:
             users.append(row)
-        for _ in range(100):
+        for _ in range(10000):
             user_uuid, name, email, role = random.choice(users)
             topic = random.choice(topics)
 
@@ -46,6 +46,6 @@ if __name__ == "__main__":
             result_bytes = user_id + http_type + encoded_string
             producer.produce(topic, result_bytes, callback=delivery_report)
             producer.flush()
-            sleep(random.random())
+            sleep(random.random() * 0.1)
 
     print("All messages sent!")

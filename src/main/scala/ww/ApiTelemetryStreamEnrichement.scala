@@ -4,7 +4,6 @@ import org.apache.beam.sdk.Pipeline
 import org.apache.beam.sdk.io.kafka.KafkaIO
 import org.apache.beam.sdk.options.PipelineOptionsFactory
 import org.apache.beam.sdk.transforms.{MapElements, ParDo, SimpleFunction}
-import org.apache.beam.sdk.values.{KV, TypeDescriptor}
 import org.apache.kafka.common.serialization.StringDeserializer
 
 import scala.jdk.CollectionConverters._
@@ -31,14 +30,9 @@ object ApiTelemetryStreamEnrichement {
       .values()
 
     // Build the pipeline
-    val input = pipeline
+    pipeline
       .apply("ReadFromKafka", kafkaRead)
-      .apply("ProcessRecords", MapElements.into(TypeDescriptor.of(classOf[ApiUsageEvent])).via(new SimpleFunction[KV[String, ApiUsageEvent], ApiUsageEvent] {
-        override def apply(input: KV[String, ApiUsageEvent]): ApiUsageEvent = {
-          input.getValue
-        }
-      }))
-      .apply("RedisEnrichment", ParDo.of(new RedisEnrich))
+      .apply("EnrichWithRedis", ParDo.of(new RedisEnrich))
       .apply("PrintToStdOut", MapElements.via(new SimpleFunction[EnrichedData, EnrichedData]() {
         override def apply(input: EnrichedData): EnrichedData = {
           println(input)
@@ -50,4 +44,5 @@ object ApiTelemetryStreamEnrichement {
     // Run the pipeline
     pipeline.run().waitUntilFinish()
   }
+
 }

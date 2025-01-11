@@ -3,6 +3,7 @@ package ww
 import io.netty.buffer.Unpooled
 import org.apache.beam.sdk.transforms.DoFn
 import org.apache.beam.sdk.transforms.DoFn.{ProcessElement, Setup, Teardown}
+import org.apache.beam.sdk.values.KV
 import org.apache.kafka.common.serialization.{Deserializer, Serializer}
 import org.redisson.Redisson
 import org.redisson.api.{RBucket, RedissonClient}
@@ -19,11 +20,9 @@ object EnrichedData {
 
   class KafkaSerializer extends Serializer[EnrichedData] {
     override def serialize(topic: String, data: EnrichedData): Array[Byte] = {
-      val buf = TypedJsonCodec.getValueEncoder.encode(data)
+      val buf = EnrichedData.TypedJsonCodec.getValueEncoder.encode(data)
       val array = new Array[Byte](buf.readableBytes())
-
-      buf.getBytes(buf.readerIndex(), array);
-
+      buf.getBytes(buf.readerIndex(), array)
       array
     }
   }
@@ -32,13 +31,13 @@ object EnrichedData {
 
     override def deserialize(topic: String, data: Array[Byte]): EnrichedData = {
       val buf = Unpooled.wrappedBuffer(data)
-      TypedJsonCodec.getValueDecoder.decode(buf, null).asInstanceOf[EnrichedData]
+      EnrichedData.TypedJsonCodec.getValueDecoder.decode(buf, null).asInstanceOf[EnrichedData]
     }
   }
 }
 
 // Enrich messages by looking up data from Redis
-class RedisEnrich extends DoFn[ApiUsageEvent, EnrichedData] {
+class RedisEnrich extends DoFn[KV[String, ApiUsageEvent], EnrichedData] {
   private var redisClient: RedissonClient = null
 
 
@@ -51,13 +50,13 @@ class RedisEnrich extends DoFn[ApiUsageEvent, EnrichedData] {
   }
 
   @ProcessElement
-  def processElement(context: DoFn[ApiUsageEvent, EnrichedData]#ProcessContext): Unit = {
+  def processElement(context: DoFn[KV[String, ApiUsageEvent], EnrichedData]#ProcessContext): Unit = {
     val input = context.element()
 
-    val userDataBucket = redisBucket(input.userId)
+    val userDataBucket = redisBucket(input.getValue.userId)
     val userData = userDataBucket.getOption
 
-    context.output(EnrichedData(input, userData, java.util.Date.from(Instant.now())))
+    context.output(EnrichedData(input.getValue, userData, java.util.Date.from(Instant.now())))
   }
 
   private def redisBucket(userId: UUID): RBucket[User] =
