@@ -6,22 +6,23 @@ import org.redisson.codec.TypedJsonJacksonCodec
 import java.nio.charset.StandardCharsets
 import java.util.UUID
 
-case class ApiUsageEvent(apiVersion: Byte, userId: UUID, method: HttpMethod, path: String)
+case class ApiUsageEvent(apiVersion: String, userId: UUID, method: HttpMethod, path: String)
 object ApiUsageEvent {
   object KafkaDeserializer extends Deserializer[ApiUsageEvent] {
     override def deserialize(topic: String, data: Array[Byte]): ApiUsageEvent = {
-      val dataSeq = data.toSeq
-      val version = dataSeq.head
 
-      val a: Array[Byte] = data.slice(1, 17) // UUID requires 16 bytes
+      val dataSeq = data.toSeq
+      val version = topic
+
+      val a: Array[Byte] = data.slice(0, 16) // UUID requires 16 bytes
       require(a.length == 16, "UUID requires exactly 16 bytes")
 
       val mostSigBits = a.slice(0, 8).foldLeft(0L)((sum, byte) => (sum << 8) | (byte & 0xFF))
       val leastSigBits = a.slice(8, 16).foldLeft(0L)((sum, byte) => (sum << 8) | (byte & 0xFF))
 
       val userId = new UUID(mostSigBits, leastSigBits)
-      val methodNumber = dataSeq(17)
-      val path = dataSeq.slice(18, dataSeq.length)
+      val methodNumber = dataSeq(16)
+      val path = dataSeq.slice(17, dataSeq.length)
 
       ApiUsageEvent(
         version,
