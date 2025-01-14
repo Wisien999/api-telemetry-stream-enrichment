@@ -31,17 +31,19 @@ object ApiTelemetryStreamCounter {
 
     val t = pipeline
       .apply("ReadFromKafka", kafkaRead)
-      .apply("ExtractUserId", MapElements.via(new SimpleFunction[KV[String, EnrichedData], KV[String, EnrichedData]]() {
-        override def apply(input: KV[String, EnrichedData]): KV[String, EnrichedData] = {
-          KV.of(input.getValue.apiUsageEvent.userId.toString, input.getValue)
+      .apply("ExtractUserIdAndName", MapElements.via(new SimpleFunction[KV[String, EnrichedData], KV[String, String]]() {
+        override def apply(input: KV[String, EnrichedData]): KV[String, String] = {
+          val userId = input.getValue.apiUsageEvent.userId.toString
+          val userName = input.getValue.user.map(_.name).getOrElse("Unknown")
+          KV.of(userId, userName)
         }
       }))
-      .apply("Window", Window.into[KV[String, EnrichedData]](FixedWindows.of(Duration.standardSeconds(30))))
-      .apply("CountPerUser", Count.perKey[String, EnrichedData]())
+      .apply("Window", Window.into[KV[String, String]](FixedWindows.of(Duration.standardSeconds(30))))
+      .apply("CountPerUser", Count.perKey[String, String]())
       .apply("Filter", ParDo.of(new FilterCount))
       .apply("PrintToStdOut", MapElements.via(new SimpleFunction[KV[String, java.lang.Long], KV[String, java.lang.Long]]() {
         override def apply(input: KV[String, java.lang.Long]): KV[String, java.lang.Long] = {
-          println(input)
+          println(s"User ID: ${input.getKey}, Count: ${input.getValue}")
           input
         }
       }))
