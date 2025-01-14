@@ -3,7 +3,8 @@ package ww
 import org.apache.beam.sdk.Pipeline
 import org.apache.beam.sdk.io.kafka.KafkaIO
 import org.apache.beam.sdk.options.PipelineOptionsFactory
-import org.apache.beam.sdk.transforms.{MapElements, ParDo, SimpleFunction}
+import org.apache.beam.sdk.transforms.{MapElements, ParDo, ProcessFunction, SimpleFunction}
+import org.apache.beam.sdk.values.{KV, TypeDescriptor}
 import org.apache.kafka.common.serialization.StringDeserializer
 
 import scala.jdk.CollectionConverters._
@@ -30,8 +31,14 @@ object ApiTelemetryStreamEnrichement {
       .values()
 
     // Build the pipeline
-    pipeline
+    val t = pipeline
       .apply("ReadFromKafka", kafkaRead)
+      .apply("OrignalMessage", MapElements.via(new SimpleFunction[KV[String, ApiUsageEvent], KV[String, ApiUsageEvent]]() {
+        override def apply(input: KV[String, ApiUsageEvent]): KV[String, ApiUsageEvent] = {
+          println(s"Original message: ${input}")
+          input
+        }
+      }))
       .apply("EnrichWithRedis", ParDo.of(new RedisEnrich))
       .apply("PrintToStdOut", MapElements.via(new SimpleFunction[EnrichedData, EnrichedData]() {
         override def apply(input: EnrichedData): EnrichedData = {
