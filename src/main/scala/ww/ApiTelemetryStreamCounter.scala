@@ -64,7 +64,7 @@ object ApiTelemetryStreamCounter {
     @ProcessElement
     def processElement(c: ProcessContext): Unit = {
       val user = c.element().getValue.user
-      if (user.exists(_.role == Role.User)) {
+      if (user.role == Role.User) {
         c.output(c.element())
       }
     }
