@@ -3,7 +3,7 @@ package ww
 import io.netty.buffer.Unpooled
 import org.apache.beam.sdk.transforms.DoFn
 import org.apache.beam.sdk.transforms.DoFn.{ProcessElement, Setup, Teardown}
-import org.apache.beam.sdk.values.KV
+import org.apache.beam.sdk.values.{KV, TupleTag}
 import org.apache.kafka.common.serialization.{Deserializer, Serializer}
 import org.redisson.Redisson
 import org.redisson.api.{RBucket, RedissonClient}
@@ -11,10 +11,10 @@ import org.redisson.codec.TypedJsonJacksonCodec
 import org.redisson.config.Config
 
 import java.time.Instant
-import java.util.UUID
+import java.util.{Date, UUID}
 
 
-case class EnrichedData(apiUsageEvent: ApiUsageEvent, user: Option[User], timestamp: java.util.Date)
+case class EnrichedData(apiUsageEvent: ApiUsageEvent, user: User, timestamp: java.util.Date) extends Serializable
 object EnrichedData {
   val TypedJsonCodec = new TypedJsonJacksonCodec(classOf[EnrichedData], ScalaJacksonJsonMapper)
 
@@ -40,6 +40,9 @@ object EnrichedData {
 class RedisEnrich extends DoFn[KV[String, ApiUsageEvent], EnrichedData] {
   private var redisClient: RedissonClient = null
 
+  val outputTag = new TupleTag[EnrichedData]()
+  val noUser = new TupleTag[ApiUsageEvent]()
+  val failuresTag = new TupleTag[String]()
 
   @Setup
   def setup(): Unit = {
@@ -54,9 +57,18 @@ class RedisEnrich extends DoFn[KV[String, ApiUsageEvent], EnrichedData] {
     val input = context.element()
 
     val userDataBucket = redisBucket(input.getValue.userId)
-    val userData = userDataBucket.getOption
+    try {
+      val userData = userDataBucket.getOption
 
-    context.output(EnrichedData(input.getValue, userData, java.util.Date.from(Instant.now())))
+      userData match {
+        case Some(value) => context.output(EnrichedData(input.getValue, value, new Date()))
+        case None => context.output(noUser, input.getValue)
+      }
+    } catch {
+      case ex: Throwable =>
+        context.output(failuresTag, ex.getMessage)
+    }
+
   }
 
   private def redisBucket(userId: UUID): RBucket[User] =

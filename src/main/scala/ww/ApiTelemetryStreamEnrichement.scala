@@ -33,12 +33,12 @@ object ApiTelemetryStreamEnrichement {
     pipeline
       .apply("ReadFromKafka", kafkaRead)
       .apply("EnrichWithRedis", ParDo.of(new RedisEnrich))
-      .apply("PrintToStdOut", MapElements.via(new SimpleFunction[EnrichedData, EnrichedData]() {
-        override def apply(input: EnrichedData): EnrichedData = {
-          println(input)
-          input
-        }
-      }))
+//      .apply("PrintToStdOut", MapElements.via(new SimpleFunction[EnrichedData, EnrichedData]() {
+//        override def apply(input: EnrichedData): EnrichedData = {
+//          println(input)
+//          input
+//        }
+//      }))
       .apply("PublishToKafka", kafkaWrite)
 
     // Run the pipeline
